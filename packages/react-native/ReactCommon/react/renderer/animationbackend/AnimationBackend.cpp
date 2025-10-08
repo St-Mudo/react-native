@@ -137,26 +137,36 @@ void AnimationBackend::stop() {
 void AnimationBackend::commitUpdatesWithFamilies(
     const std::unordered_set<const ShadowNodeFamily*>& families,
     std::unordered_map<Tag, AnimatedProps>& updates) {
-  uiManager_->getShadowTreeRegistry().enumerate(
-      [families, &updates](const ShadowTree& shadowTree, bool& /*stop*/) {
-        shadowTree.commit(
-            [families, &updates](const RootShadowNode& oldRootShadowNode) {
-              return std::static_pointer_cast<RootShadowNode>(
-                  oldRootShadowNode.cloneMultiple(
-                      families,
-                      [families, &updates](
-                          const ShadowNode& shadowNode,
-                          const ShadowNodeFragment& fragment) {
-                        auto& animatedProps = updates.at(shadowNode.getTag());
-                        auto newProps = cloneProps(animatedProps, shadowNode);
-                        return shadowNode.clone(
-                            {newProps,
-                             fragment.children,
-                             shadowNode.getState()});
-                      }));
-            },
-            {.mountSynchronously = true});
-      });
+  std::unordered_map<SurfaceId, std::unordered_set<const ShadowNodeFamily*>>
+      surfaceToFamilies;
+  for (auto& family : families) {
+    surfaceToFamilies[family->getSurfaceId()].insert(family);
+  }
+  for (const auto& [surfaceId, surfaceFamilies] : surfaceToFamilies) {
+    uiManager_->getShadowTreeRegistry().visit(
+        surfaceId,
+        [surfaceFamilies = std::move(surfaceFamilies),
+         &updates](const ShadowTree& shadowTree) {
+          shadowTree.commit(
+              [surfaceFamilies = std::move(surfaceFamilies),
+               &updates](const RootShadowNode& oldRootShadowNode) {
+                return std::static_pointer_cast<RootShadowNode>(
+                    oldRootShadowNode.cloneMultiple(
+                        surfaceFamilies,
+                        [&updates](
+                            const ShadowNode& shadowNode,
+                            const ShadowNodeFragment& fragment) {
+                          auto& animatedProps = updates.at(shadowNode.getTag());
+                          auto newProps = cloneProps(animatedProps, shadowNode);
+                          return shadowNode.clone(
+                              {newProps,
+                               fragment.children,
+                               shadowNode.getState()});
+                        }));
+              },
+              {.mountSynchronously = true});
+        });
+  }
 }
 
 void AnimationBackend::synchronouslyUpdateProps(
