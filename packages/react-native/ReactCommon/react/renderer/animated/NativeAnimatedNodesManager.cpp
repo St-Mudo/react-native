@@ -975,6 +975,7 @@ AnimationMutations NativeAnimatedNodesManager::pullAnimationMutations() {
             AnimationMutation{tag, nullptr, propsBuilder.get()});
         containsChange = true;
       }
+      updateViewPropsDirect_.clear();
     }
 
     if (!containsChange) {

@@ -82,6 +82,12 @@ NativeAnimatedNodesManagerProvider::getOrCreate(
       nativeAnimatedNodesManager_ =
           std::make_shared<NativeAnimatedNodesManager>(animationBackend_);
 
+      nativeAnimatedDelegate_ =
+          std::make_shared<UIManagerNativeAnimatedDelegateBackendImpl>(
+              animationBackend_);
+
+      uiManager->setNativeAnimatedDelegate(nativeAnimatedDelegate_);
+
       uiManager->unstable_setAnimationBackend(animationBackend_);
     } else {
       nativeAnimatedNodesManager_ =
@@ -90,6 +96,12 @@ NativeAnimatedNodesManagerProvider::getOrCreate(
               std::move(fabricCommitCallback),
               std::move(startOnRenderCallback_),
               std::move(stopOnRenderCallback_));
+
+      nativeAnimatedDelegate_ =
+          std::make_shared<UIManagerNativeAnimatedDelegateImpl>(
+              nativeAnimatedNodesManager_);
+
+      uiManager->setNativeAnimatedDelegate(nativeAnimatedDelegate_);
     }
 
     addEventEmitterListener(
@@ -111,12 +123,6 @@ NativeAnimatedNodesManagerProvider::getOrCreate(
           }
           return false;
         }));
-
-    nativeAnimatedDelegate_ =
-        std::make_shared<UIManagerNativeAnimatedDelegateImpl>(
-            nativeAnimatedNodesManager_);
-
-    uiManager->setNativeAnimatedDelegate(nativeAnimatedDelegate_);
 
     // TODO: remove force casting.
     auto* scheduler = (Scheduler*)uiManager->getDelegate();

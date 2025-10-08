@@ -10,6 +10,18 @@
 
 namespace facebook::react {
 
+UIManagerNativeAnimatedDelegateBackendImpl::
+    UIManagerNativeAnimatedDelegateBackendImpl(
+        std::weak_ptr<AnimationBackend> animationBackend)
+    : animationBackend_(std::move(animationBackend)) {}
+
+void UIManagerNativeAnimatedDelegateBackendImpl::runAnimationFrame() {
+  if (auto animationBackendStrong = animationBackend_.lock()) {
+    animationBackendStrong->onAnimationFrame(
+        std::chrono::steady_clock::now().time_since_epoch().count() / 1000);
+  }
+}
+
 static inline Props::Shared cloneProps(
     AnimatedProps& animatedProps,
     const ShadowNode& shadowNode) {
@@ -108,13 +120,17 @@ void AnimationBackend::onAnimationFrame(double timestamp) {
 void AnimationBackend::start(const Callback& callback) {
   callbacks.push_back(callback);
   // TODO: startOnRenderCallback_ should provide the timestamp from the platform
-  startOnRenderCallback_([this]() {
-    onAnimationFrame(
-        std::chrono::steady_clock::now().time_since_epoch().count() / 1000);
-  });
+  if (startOnRenderCallback_) {
+    startOnRenderCallback_([this]() {
+      onAnimationFrame(
+          std::chrono::steady_clock::now().time_since_epoch().count() / 1000);
+    });
+  }
 }
 void AnimationBackend::stop() {
-  stopOnRenderCallback_();
+  if (stopOnRenderCallback_) {
+    stopOnRenderCallback_();
+  }
   callbacks.clear();
 }
 
