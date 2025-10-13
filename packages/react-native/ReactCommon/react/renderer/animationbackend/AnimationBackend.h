@@ -15,6 +15,8 @@
 #include <vector>
 #include "AnimatedProps.h"
 #include "AnimatedPropsBuilder.h"
+#include "AnimatedPropsRegistry.h"
+#include "AnimationBackendCommitHook.h"
 
 namespace facebook::react {
 
@@ -55,7 +57,9 @@ class AnimationBackend : public UIManagerAnimationBackend {
   const StopOnRenderCallback stopOnRenderCallback_;
   const DirectManipulationCallback directManipulationCallback_;
   const FabricCommitCallback fabricCommitCallback_;
+  std::shared_ptr<AnimatedPropsRegistry> animatedPropsRegistry_;
   UIManager* uiManager_;
+  std::unique_ptr<AnimationBackendCommitHook> commitHook_;
 
   AnimationBackend(
       StartOnRenderCallback&& startOnRenderCallback,
